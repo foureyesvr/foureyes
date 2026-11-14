@@ -1,7 +1,10 @@
 # Four Eyes
 
-Watch up to four videos or photo slideshows side by side in VR, each on its own screen with
-its own controls.
+**A free VR player for watching multiple videos at once.** Watch up to four flat or 3D (SBS)
+videos or photo slideshows side by side in VR, each on its own screen with its own controls.
+
+**[Open Four Eyes](https://rodbuilds.github.io/foureyes/)** in Chrome or Edge, with a Meta Quest
+(Link / Air Link), Rift or SteamVR headset.
 
 Four Eyes is a single web page. Open it in Chrome or Edge on a PC with a VR headset, press
 **Enter VR**, and your own videos and photos appear on floating screens around you. There's
@@ -161,8 +164,26 @@ Privacy is the point, not an afterthought.
   about you. The host (for example GitHub Pages) and those CDNs may keep standard server
   logs, as every website does. To avoid even that, download `index.html` and the files it
   loads, and run it locally.
-- **Check it yourself.** It's one readable HTML file with no build step. Search it for
-  `http` to see every outside address it uses: just the three.js and font links above.
+- **Check it yourself.** It's one readable HTML file with no build step. The only things it
+  loads from elsewhere are the three.js and font files above; its other web addresses (its
+  own page address and a link to this repository) are plain links that load nothing.
+
+## FAQ
+
+**How can I watch multiple flat videos at once in VR?** Open Four Eyes in Chrome or Edge on
+your PC, add your video folders, choose 2, 3 or 4 screens and press **Enter VR**. Each screen
+plays its own video with its own controls and sound.
+
+**Is it free?** Yes. It's free and open source (MIT), with no account, no ads and no in-app
+purchases.
+
+**Which headsets work?** Any PC VR headset Chrome or Edge supports through WebXR: Meta Quest 2,
+3 and Pro over Link or Air Link, Rift, and SteamVR headsets such as Index or Vive.
+
+**Does it play 3D videos?** Yes: side-by-side (SBS) and over/under, full or half width, plus
+`.jps` stereo photos. You can mix flat and 3D screens.
+
+**Does it collect any data?** No. See [Privacy](#privacy).
 
 ## How it's built
 
