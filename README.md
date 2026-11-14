@@ -1,7 +1,10 @@
 # Four Eyes
 
-Watch up to four videos or photo slideshows side by side in VR, each on its own screen with
-its own controls.
+**A free VR player for watching multiple videos at once.** Watch up to four flat or 3D (SBS)
+videos or photo slideshows side by side in VR, each on its own screen with its own controls.
+
+**[Open Four Eyes](https://rodbuilds.github.io/foureyes/)** in Chrome or Edge, with a Meta Quest
+(Link / Air Link), Rift or SteamVR headset.
 
 Four Eyes is a single web page. Open it in Chrome or Edge on a PC with a VR headset, press
 **Enter VR**, and your own videos and photos appear on floating screens around you. There's
@@ -134,8 +137,10 @@ Each screen has a two-row bar underneath it:
 
 - **Picture freezes but sound keeps playing:** Chrome pauses video pictures when it thinks the
   page is hidden. Don't minimize the Chrome window or cover it completely while you're in VR.
-- **Screens too high or low:** Four Eyes measures your eye height a moment after you enter VR
-  and centres the screens on it. Sit or stand the way you'll watch before pressing Enter VR.
+- **Where the screens appear:** a moment after you enter VR, Four Eyes centres the screens on
+  your head, in front of the way you're facing and at your eye height. Sit or stand the way
+  you'll watch and look straight ahead as you press Enter VR. To move them later, recentre your
+  headset (hold the Oculus / system button) and they follow.
 - **"The browser blocked playback":** click once on the page (browsers only allow sound after
   you've interacted with a page), then try again.
 - **File pickers don't open inside the headset.** Add your folders on the PC first; after that,
@@ -161,8 +166,29 @@ Privacy is the point, not an afterthought.
   about you. The host (for example GitHub Pages) and those CDNs may keep standard server
   logs, as every website does. To avoid even that, download `index.html` and the files it
   loads, and run it locally.
-- **Check it yourself.** It's one readable HTML file with no build step. Search it for
-  `http` to see every outside address it uses: just the three.js and font links above.
+- **Check it yourself.** It's one readable HTML file with no build step. The only things it
+  loads from elsewhere are the three.js and font files above; its other web addresses (its
+  own page address and a link to this repository) are plain links that load nothing.
+
+## FAQ
+
+**How can I watch multiple flat videos at once in VR?** Open Four Eyes in Chrome or Edge on
+your PC, add your video folders, choose 2, 3 or 4 screens and press **Enter VR**. Each screen
+plays its own video with its own controls and sound.
+
+**Is it free?** Yes. It's free and open source (MIT), with no account, no ads and no in-app
+purchases.
+
+**Which headsets work?** Any PC VR headset Chrome or Edge supports through WebXR: Meta Quest 2,
+3 and Pro over Link or Air Link, Rift, and SteamVR headsets such as Index or Vive.
+
+**Does it play 3D videos?** Yes: side-by-side (SBS) and over/under, full or half width, plus
+`.jps` stereo photos. You can mix flat and 3D screens.
+
+**Does it collect any data?** No. See [Privacy](#privacy).
+
+**Like it?** Four Eyes counts nothing, so a ⭐ star on this repository is the only way to know
+it's being used. Stars also help other people find it.
 
 ## How it's built
 
