@@ -3,7 +3,31 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Four Eyes</title>
+<title>Four Eyes: watch multiple videos at once in VR (free WebXR multi-screen player)</title>
+<meta name="description" content="Free, private VR video player that plays up to four flat or 3D SBS videos and photo slideshows at once on floating screens. Runs in Chrome or Edge with Quest (Link / Air Link), Rift or SteamVR. No install, no account, no tracking.">
+<link rel="canonical" href="https://foureyesvr.github.io/foureyes/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Four Eyes: watch multiple videos at once in VR">
+<meta property="og:description" content="Free WebXR player: up to four flat or SBS 3D videos and photo slideshows side by side in VR. No install, no account, no tracking.">
+<meta property="og:url" content="https://foureyesvr.github.io/foureyes/">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Four Eyes",
+  "url": "https://foureyesvr.github.io/foureyes/",
+  "description": "Free VR multi-screen video player. Watch up to four flat or 3D side-by-side videos and photo slideshows at once on floating screens, in the browser with WebXR.",
+  "applicationCategory": "MultimediaApplication",
+  "operatingSystem": "Windows",
+  "browserRequirements": "Chrome or Edge with WebXR and a PC VR headset (Meta Quest via Link or Air Link, Rift, or SteamVR)",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "license": "https://opensource.org/licenses/MIT",
+  "sameAs": "https://github.com/foureyesvr/foureyes",
+  "featureList": "Up to four screens at once; flat, SBS and over/under 3D video; photo slideshows; curved screens; Xbox controller head cursor; in-VR media browser; shuffle playlists; no tracking or analytics"
+}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
@@ -96,7 +120,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 <body>
 <div class="wrap">
   <header>
-    <h1>Four Eyes<small>Watch up to four videos or photo slideshows side by side in VR, each with its own controls.</small></h1>
+    <h1>Four Eyes<small>Watch up to four videos or photo slideshows at once in VR, side by side, each with its own controls. Free, with no tracking.</small></h1>
     <div class="spacer"></div>
     <div class="seg" role="group" aria-label="Screen layout" id="layoutSeg">
       <button data-l="1">1 screen</button>
@@ -181,6 +205,14 @@ button:disabled{opacity:.5;cursor:not-allowed}
     <p>Open this page in Chrome or Edge on the PC the Rift is plugged into, with the Oculus app running. Load your normal videos (MP4, WebM and so on) here first (file pickers can't open inside the headset), then press Enter VR.</p>
     <p>If you use Touch controllers instead, point one and pull the trigger. Trigger on a screen plays or pauses it. The bar under each screen has skip back and forward, a seek bar, mute, volume, solo (mutes the others), size, and loop. While pointing at a screen, the thumbstick left and right skips 10 seconds and up and down changes volume.</p>
   </div>
+  <section class="help" aria-labelledby="aboutH">
+    <h3 id="aboutH">About Four Eyes</h3>
+    <p>Four Eyes is a free VR video player for watching several flat videos at once: up to four screens floating around you, each playing its own video or photo slideshow with its own controls. It also plays 3D side-by-side (SBS) and over/under videos and photos.</p>
+    <h3>How do I watch multiple videos at once in VR?</h3>
+    <p>Open this page in Chrome or Edge on your PC, add the folders your videos are in, pick a layout (1 to 4 screens) and press Enter VR. It works with a Meta Quest over Link or Air Link, a Rift, or any SteamVR headset. Nothing to install, no account.</p>
+    <h3>Is it free? Does it track me?</h3>
+    <p>Yes, it's free and open source (MIT). There are no analytics, no telemetry and no cookies, and your videos never leave your computer. The source is on <a href="https://github.com/foureyesvr/foureyes">GitHub</a>.</p>
+  </section>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>

@@ -15,7 +15,7 @@ test('the page starts without errors and builds all four screens', async () => {
   }));
   assert.equal(r.cards, 4);
   assert.equal(r.screens, 4);
-  assert.equal(r.title, 'Four Eyes');
+  assert.match(r.title, /^Four Eyes\b/);
   assert.equal(r.layout, '2');
   assert.deepEqual(app.errors, [], 'console errors: ' + app.errors.join(' | '));
 });
