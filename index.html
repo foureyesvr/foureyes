@@ -212,6 +212,8 @@ button:disabled{opacity:.5;cursor:not-allowed}
     <p>Open this page in Chrome or Edge on your PC, add the folders your videos are in, pick a layout (1 to 4 screens) and press Enter VR. It works with a Meta Quest over Link or Air Link, a Rift, or any SteamVR headset. Nothing to install, no account.</p>
     <h3>Is it free? Does it track me?</h3>
     <p>Yes, it's free and open source (MIT). There are no analytics, no telemetry and no cookies, and your videos never leave your computer. The source is on <a href="https://github.com/rodbuilds/foureyes">GitHub</a>.</p>
+    <h3>Like it?</h3>
+    <p>Since Four Eyes counts nothing, a star is the only way to know it's being used: <a href="https://github.com/rodbuilds/foureyes">⭐ Star it on GitHub</a>.</p>
   </section>
 </div>
 
@@ -245,6 +247,20 @@ let photoSecs = 5; // how long each photo in a slideshow stays up, shared by eve
 const slotAt = [0,1,2,3]; // layout position -> slot index; swapping screens swaps entries here
 let swapFrom = null, swapUntil = 0; // screen picked as the first half of a swap
 let eyeY = 1.6, measureEyeAt = 0; // your eye height above the floor, measured when you enter VR
+// The headset's starting point is wherever it was last recentred, not where you are now, so the
+// screens could sit off to one side until you reset the view. A moment after entering VR (and after
+// every recentre) the screens are moved to centre on your head, facing the way you look; only the
+// turn left/right is used, so looking up or down at that moment doesn't tilt anything.
+function centreOnHead(){
+  camera.updateMatrixWorld();
+  const p=new THREE.Vector3().setFromMatrixPosition(camera.matrixWorld);
+  const f=new THREE.Vector3(0,0,-1).transformDirection(camera.matrixWorld);
+  world.position.x=p.x; world.position.z=p.z;
+  if(Math.hypot(f.x,f.z)>0.2) world.rotation.y=Math.atan2(-f.x,-f.z); // not when looking straight up or down
+  const y=p.y-world.position.y;
+  if(y>0.6 && y<2.2) eyeY=y;
+  needArrange=true;
+}
 let autoHide = true;
 const statusEl = document.getElementById('status');
 const setStatus = t => statusEl.textContent = t || '';
@@ -974,8 +990,9 @@ function findBorders(S){
   return {l:fr(l,W), r:fr(r,W), t:fr(t,H), b:fr(b,H)};
 }
 document.getElementById('fitView').onclick=()=>fitInView(90);
+const _eyeAt=new THREE.Vector3();
 function arrange(){
-  needArrange=false;
+  needArrange=false; world.updateMatrixWorld();
   const L=LAYOUTS[layout], rows=L.rows.map(r=>r.map(p=>slots[slotAt[p]]));
   const rowH=rows.map(r=>Math.max(...r.map(s=>s.dims.h)));
   const rowB=rows.map(r=>Math.max(...r.map(s=>s.dims.bar)));
@@ -995,7 +1012,7 @@ function arrange(){
       const y= rows.length===1? Math.max(cy, MIN_BOTTOM+s.dims.bar+s.dims.h/2) : rowY;
       s.basePos.set(-R*Math.sin(c), y, -R*Math.cos(c));
       s.group.position.copy(s.basePos); s.zoom=1;
-      s.group.lookAt(0,eyeY,0); // tilted to face your eyes when it sits above or below them
+      s.group.lookAt(world.localToWorld(_eyeAt.set(0,eyeY,0))); // tilted to face your eyes when it sits above or below them
       a-=ang[k]+gap;
     });
     top-=rowH[ri]+rowB[ri]+V_GAP;
@@ -1737,7 +1754,10 @@ vrBtn.onclick=async()=>{
     renderer.xr.setFramebufferScaleFactor(xrScaleUsed); // only takes effect when a session starts
     await renderer.xr.setSession(s);
     session=s; vrBtn.textContent='Exit VR'; setStatus(''); measureEyeAt=performance.now()+1500;
-    s.addEventListener('end',()=>{ session=null; vrBtn.textContent='Enter VR'; world.position.y=0;
+    // Recentring from the headset (holding the Oculus / system button) moves the origin; centre again on you.
+    const ref=renderer.xr.getReferenceSpace();
+    if(ref && ref.addEventListener) ref.addEventListener('reset',()=>{ measureEyeAt=performance.now()+300; });
+    s.addEventListener('end',()=>{ session=null; vrBtn.textContent='Enter VR'; world.position.set(0,0,0); world.rotation.set(0,0,0);
       camera.position.set(0,1.6,0); camera.scale.set(1,1,1); camera.rotation.set(pitch,yaw,0,'YXZ');
       eyeY=1.6; measureEyeAt=0; needArrange=true; resize(); });
   }catch(e){ setStatus('Couldn\'t start VR: '+(e.message||e)); }
@@ -1949,9 +1969,7 @@ renderer.setAnimationLoop(()=>{
     } else s.stallSince=now;
   }
   if(measureEyeAt && now>measureEyeAt && renderer.xr.isPresenting){
-    measureEyeAt=0;
-    const y=new THREE.Vector3().setFromMatrixPosition(camera.matrixWorld).y - world.position.y;
-    if(y>0.6 && y<2.2){ eyeY=y; needArrange=true; }
+    measureEyeAt=0; centreOnHead();
   }
   renderer.render(scene,camera);
 });
@@ -1971,7 +1989,7 @@ if(new URLSearchParams(location.search).has("test")) window.FourEyes={
   applyLayout, arrange, fitInView, layoutSpan, topAngle, visible, screenAngle, sizeTo,
   bendScreen, setUV, findBorders, raycastFrom, activate, swapScreens,
   openBrowser, closeBrowser, browserClick, refreshDir, drawPanel, gatherTree, shuffleAll, setSetting, stepPhotoSecs,
-  resetPrefs, PREFS_KEY, refreshLibrary, renderer, photoTexture, uploads, UPLOAD_ROWS, decodeImage, PHOTO_AHEAD, updateFocus, focus:{ get:()=>focusSlot, set:s=>{ focusSlot=focusCand=s; } },
+  resetPrefs, PREFS_KEY, refreshLibrary, centreOnHead, renderer, photoTexture, uploads, UPLOAD_ROWS, decodeImage, PHOTO_AHEAD, updateFocus, focus:{ get:()=>focusSlot, set:s=>{ focusSlot=focusCand=s; } },
   layout:()=>layout, eyeY:()=>eyeY, setEye:v=>{ eyeY=v; needArrange=true; }, barButtons:()=>barButtons, photoSecs:()=>photoSecs,
 };
 })();
