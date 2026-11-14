@@ -7,6 +7,10 @@ Four Eyes is a single web page. Open it in Chrome or Edge on a PC with a VR head
 **Enter VR**, and your own videos and photos appear on floating screens around you. There's
 nothing to install and no account, and your files never leave your computer.
 
+**Privacy comes first.** Four Eyes has no analytics, no telemetry, no tracking and no cookies.
+It collects nothing and reports nothing: not what you watch, not your file names, not even that
+you opened it. We genuinely don't know how many people use it. See [Privacy](#privacy).
+
 ## Features
 
 - **Up to four screens.** Layouts for 1 screen, 2 side by side, 3 or 4 in a wide arc, or a
@@ -30,6 +34,7 @@ nothing to install and no account, and your files never leave your computer.
   shuffles a whole collection. A **VIDEOS / PHOTOS** switch picks which of the two they play.
   Photos are shuffled as **sets**: each folder plays in order, and the sets come in random order
   (PREV / NEXT skip a whole set).
+  After adding or removing files, press **↻** in the browser so the next shuffle sees them.
 - **Photo slideshows.** Any screen can show a folder of photos as a slideshow, with an
   adjustable time per photo.
 - **3D.** Side-by-side (SBS) and over/under (OU) videos and photos, full or half width, with a
@@ -41,7 +46,7 @@ nothing to install and no account, and your files never leave your computer.
 - **Remembers your settings.** Layout, curved screens, focus zoom, photo time, VR render
   resolution and the other settings come back next time; **Reset settings** undoes them.
 - **Private by design.** Everything runs in your browser. Videos and photos are read straight
-  from your disk and are never uploaded anywhere.
+  from your disk and are never uploaded anywhere. No analytics, no telemetry, no data collected.
 
 ## What you need
 
@@ -135,6 +140,29 @@ Each screen has a two-row bar underneath it:
   you've interacted with a page), then try again.
 - **File pickers don't open inside the headset.** Add your folders on the PC first; after that,
   everything can be picked in VR.
+
+## Privacy
+
+Privacy is the point, not an afterthought.
+
+- **No analytics, telemetry or tracking.** There's no analytics script, no usage counter, no
+  crash reporter, no cookies and no account. Four Eyes never sends anything about you or your
+  viewing anywhere, so nobody, including the author, knows who uses it or what they watch.
+- **Your files stay on your computer.** Videos and photos are read directly from your disk by
+  your browser and are never uploaded.
+- **Nothing about what you watch is saved.** No watch history, recently played list or file
+  names are stored, so someone else using the same computer can't see what you played.
+- **What is stored, only in your browser:** your settings (layout and options, in
+  localStorage) and access to the folders you added, which includes the folder names (in
+  IndexedDB, so you don't have to pick them every time). **Remove** next to a folder under Media library forgets it, **Reset
+  settings** clears the settings, and clearing the site's data in your browser removes both.
+- **What the page loads from elsewhere:** three.js from cdnjs and fonts from Google Fonts, like
+  any web page loading a library. These are plain downloads; Four Eyes sends them nothing
+  about you. The host (for example GitHub Pages) and those CDNs may keep standard server
+  logs, as every website does. To avoid even that, download `index.html` and the files it
+  loads, and run it locally.
+- **Check it yourself.** It's one readable HTML file with no build step. Search it for
+  `http` to see every outside address it uses: just the three.js and font links above.
 
 ## How it's built
 

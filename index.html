@@ -167,7 +167,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
       <dt>Right stick click</dt><dd>Show or hide the head cursor</dd>
     </dl>
     <p>In the media browser: A opens the folder or plays the video under the head cursor, B goes back up a folder (or closes the browser), LB / RB or the D-pad turn pages. Each screen remembers where it was in the browser. ⚙ Settings (top left of the browser) has the layout, curved screens, focus zoom, fit all in view, and the other options on this page, so you can change them without taking the headset off. Use "Load to screen" on the left to pick which screen the video goes to, and "Format" for 3D videos (SBS = side by side, OU = over/under, ½ = half-width).</p>
-    <p>Picking a video makes the rest of its folder that screen's playlist. "When a video ends" (in the browser, or on the screen's card) chooses whether it stops, plays the next video in the folder, or plays the folder in random order. PLAY ALL and SHUFFLE at the top of the browser start the whole folder, and NEXT on a screen's control bar skips ahead. SHUFFLE ALL also takes in every subfolder (all the way down), so one press shuffles a folder of folders; from the top of the browser it shuffles all your folders together. The VIDEOS / PHOTOS switch beside them chooses what those three buttons play, separately for each screen (picking a single file always plays that file's kind).</p>
+    <p>Picking a video makes the rest of its folder that screen's playlist. "When a video ends" (in the browser, or on the screen's card) chooses whether it stops, plays the next video in the folder, or plays the folder in random order. PLAY ALL and SHUFFLE at the top of the browser start the whole folder, and NEXT on a screen's control bar skips ahead. SHUFFLE ALL also takes in every subfolder (all the way down), so one press shuffles a folder of folders; from the top of the browser it shuffles all your folders together. The ↻ button next to UP makes the browser forget what it has read (SHUFFLE ALL scans, dates and thumbnails) and read your folders again, so files you've added or removed since show up. The VIDEOS / PHOTOS switch beside them chooses what those three buttons play, separately for each screen (picking a single file always plays that file's kind).</p>
     <p>SHUFFLE ALL on PHOTOS plays photo sets: each folder's photos in name order, one set after another, with the sets in random order. PREV / NEXT (and D-pad left / right) skip to the previous or next set; −10 / +10 and LB / RB step single photos. At the end of a set the next one starts; with LOOP on, the same set repeats; with "When it ends" on STOP it stops, and on NEXT the sets go in folder order and stop after the last.</p>
     <p>Your settings (the ones on the ⚙ Settings page, plus photo time, VR render and the layout) are remembered between visits in this browser. "Reset settings", on the page or the Settings page, puts them back. What was playing is not remembered.</p>
     <p>Each screen's control bar has two rows: FILES, PREV −10 ▶ +10 NEXT, MUTE V− V+ SOLO, S− S+ LOOP SWAP on top, and the seek bar, time and file name underneath.</p>
@@ -322,7 +322,7 @@ class Slot{
     this.lastHover=0; this.hoverBtn=null; this.hoverSeek=null; this.barDirty=true; this.lastDraw=0;
     this.playKind='file'; // VIDEOS ('file') or PHOTOS ('image'): what PLAY ALL, SHUFFLE and SHUFFLE ALL play
     this.sort='az'; // this screen's folder sort in the media browser
-    this.photo=null; this.slidePlaying=false; this.slideNext=0; this.photoTok=0; this.pre=null; // slideshow state
+    this.photo=null; this.slidePlaying=false; this.slideNext=0; this.photoTok=0; this.pcache=null; // slideshow state
     this.crop={...NO_CROP}; this.cropTry=0; // fractions cut from each edge of the picture (one eye's half, for 3D)
     this.list=null; this.order=null; this.pos=0; this.endMode='next'; // playlist: the folder the video came from
     this.lastT=-1; this.stallT=-1; this.stallSince=0;
@@ -366,6 +366,8 @@ class Slot{
       this.err(v.src.startsWith('blob:') ? 'This file format can\'t be played by the browser. MP4 (H.264/H.265) or WebM usually work.'
         : 'That link didn\'t load. The server has to allow cross-origin playback (CORS), and the link must point straight at a video file.');
     });
+    v.addEventListener('error',()=>this.skipBroken());
+    v.addEventListener('playing',()=>{ this.fails=0; }); // something played: the run of failures is over
     for(const ev of ['play','pause','volumechange','ratechange','ended']) v.addEventListener(ev,()=>{this.barDirty=true;this.syncUI();});
     v.addEventListener('ended',()=>{
       if(v.loop || this.endMode==='stop' || !this.list || this.list.length<2) return;
@@ -465,7 +467,7 @@ class Slot{
   }
   setScale(v){ this.scale=Math.max(0.2,Math.min(2.5,+v.toFixed(3))); this.scales[layout]=this.scale; this.updateSize(); this.syncUI(); }
   // ----- playlist -----
-  setList(list,cur,keepSets){ if(!keepSets) this.sets=null; this.list=list; this.buildOrder(cur); }
+  setList(list,cur,keepSets){ if(!keepSets) this.sets=null; this.dir=1; this.fails=0; this.list=list; this.buildOrder(cur); }
   buildOrder(cur){
     const n=this.list.length, mix=this.endMode==='shuffle' && !this.sets; // photos inside a set always go in name order
     this.order= mix? shuffled(n) : [...Array(n).keys()];
@@ -497,6 +499,7 @@ class Slot{
   }
   async next(d){
     if(!this.list || !this.list.length) return;
+    if(d) this.dir= d<0? -1 : 1; // which way we're going, so a broken video is skipped the same way
     // stepping past either end of a set moves to the neighbouring set
     if(this.sets && d){ const p=this.pos+d; if(p>=this.order.length) return this.stepSet(1); if(p<0) return this.stepSet(-1); }
     const n=this.order.length; let p=this.pos+d;
@@ -510,7 +513,7 @@ class Slot{
     catch(err){ this.err('Couldn\'t open '+e.name+': '+(err.message||err)); }
   }
   loadFile(f,keepList){
-    this.leavePhoto(); this.crop={...NO_CROP};
+    this.leavePhoto(); this.crop={...NO_CROP}; this.skipTok=(this.skipTok||0)+1;
     if(!keepList){ this.list=null; this.sets=null; }
     if(this.url) URL.revokeObjectURL(this.url);
     this.url=URL.createObjectURL(f); this.name=f.name; this.loaded=false;
@@ -518,7 +521,7 @@ class Slot{
   }
   loadURL(u){
     this.list=null; this.sets=null; this.name=u.split('/').pop().split('?')[0]||u; this.loaded=false;
-    this.leavePhoto(); this.crop={...NO_CROP};
+    this.leavePhoto(); this.crop={...NO_CROP}; this.skipTok=(this.skipTok||0)+1;
     this.video.crossOrigin='anonymous'; this.video.src=u; this.video.load(); this.syncUI();
   }
   toggle(){ if(!this.loaded) return; this.isPaused() ? this.play() : this.pause(); }
@@ -528,8 +531,11 @@ class Slot{
   async showPhoto(e){
     const tok=++this.photoTok;
     let im=null;
-    if(this.pre && this.pre.key===e.key){ im=this.pre; this.pre=null; }
-    else { try{ im=await decodeImage(e); }catch(err){ this.err('Couldn\'t show '+e.name+': '+(err.message||err)); } }
+    const cache=this.photoCache(), cached=cache.get(e.key);
+    if(cached){ cache.delete(e.key); im=await cached.promise; } // preloaded (or still loading: waiting is still quicker)
+    this.fromCache=!!(cached && im); // for the tests: was this photo ready ahead of time?
+    if(!im){ try{ im=await decodeImage(e); }catch(err){ this.err('Couldn\'t show '+e.name+': '+(err.message||err)); } }
+    if(im && !im.tex){ try{ im.tex=await photoTexture(im.bmp); }catch(err){ disposePhoto(im); im=null; } }
     if(!im){ if(this.slidePlaying && tok===this.photoTok) this.slideNext=performance.now()+1000; return; } // unreadable photo: skip it shortly
     if(tok!==this.photoTok){ disposePhoto(im); return; }
     if(!this.photo){ // switching from video: stop it and let go of its file
@@ -537,9 +543,9 @@ class Slot{
       if(this.url){ URL.revokeObjectURL(this.url); this.url=null; }
       this.srcUrl=null; this.sceneStart=this.sceneEnd=null;
     }
-    if(this.cur) disposePhoto(this.cur);
-    this.cur=im; this.photo={key:e.key}; this.mw=im.w; this.mh=im.h;
-    const t=im.tex || (im.tex=photoTexture(im.bmp));
+    if(this.cur) cache.set(this.cur.key,{promise:Promise.resolve(this.cur)});
+    im.key=e.key; this.cur=im; this.photo={key:e.key}; this.mw=im.w; this.mh=im.h;
+    const t=im.tex;
     for(const m of [this.mono,this.left,this.right]){ m.material.map=t; m.material.needsUpdate=true; }
     if(/\.jps$/i.test(e.name) && this.mode==='2d'){ this.mode='sbs'; this.swap=true; } // JPS is stored side by side, right eye first
     this.crop={...NO_CROP}; this.cropTry++;
@@ -551,12 +557,48 @@ class Slot{
     this.prefetch();
   }
   // decode the next photo ahead of time, so the change is instant
+  // A video in a playlist that can't be played (unsupported format, damaged, or missing) is skipped
+  // after a moment, the same way you were going. If every item fails in a row it stops there.
+  skipBroken(){
+    if(!this.list || this.list.length<2 || this.photo) return;
+    this.fails=(this.fails||0)+1;
+    if(this.fails>=this.list.length){ this.fails=0; this.flashMsg('Nothing in this playlist can be played',5000); return; }
+    const dot=this.name.lastIndexOf('.'), shown= dot>0? this.name.slice(0,dot) : this.name;
+    this.flashMsg('Can\'t play '+shown+', skipping',2500);
+    const tok=this.skipTok=(this.skipTok||0)+1;
+    setTimeout(()=>{ if(tok===this.skipTok) this.next(this.dir||1); }, SKIP_DELAY_MS);
+  }
+  // ----- photo preloading -----
+  // Each screen keeps the photos it's likely to show next decoded and already on the GPU: the next
+  // PHOTO_AHEAD in line (crossing into the next set at the end of one) and the one before, for PREV.
+  // Big side-by-side photos take a moment to read and decode, so this is what makes stepping instant.
+  photoCache(){ return this.pcache || (this.pcache=new Map()); } // key -> {promise: decoded photo or null}
+  photoNeighbours(){
+    const out=[]; if(!this.list) return out;
+    const n=this.order.length, add=e=>{ if(e && e.kind==='image') out.push(e); };
+    for(let d=1; d<=PHOTO_AHEAD; d++){
+      const p=this.pos+d;
+      if(p<n){ add(this.list[this.order[p]]); continue; }
+      if(this.sets){ // past the end of this set: the start of the next one
+        const sp=this.setPos+1;
+        if(sp<this.sets.length) add(this.sets[this.setOrder[sp]].items[p-n]);
+      } else if(this.video.loop || this.endMode==='shuffle') add(this.list[this.order[p%n]]);
+    }
+    if(this.pos>0) add(this.list[this.order[this.pos-1]]);
+    return out;
+  }
   prefetch(){
-    if(!this.list || this.endMode==='stop') return;
-    const n=this.order.length; let p=this.pos+1; if(p>=n){ if(!this.video.loop && this.endMode!=='shuffle') return; p=0; }
-    const e=this.list[this.order[p]]; if(!e || e.kind!=='image' || (this.pre&&this.pre.key===e.key)) return;
-    // decoded off the main thread, then uploaded to the GPU now rather than when it's due on screen
-    decodeImage(e).then(im=>{ if(this.pre) disposePhoto(this.pre); im.tex=photoTexture(im.bmp); this.pre={key:e.key,...im}; }).catch(()=>{});
+    const want=this.photoNeighbours(), keys=new Set(want.map(e=>e.key)), cache=this.photoCache();
+    // let go of anything no longer near (it frees GPU memory)
+    for(const [k,c] of cache) if(!keys.has(k)){ cache.delete(k); c.promise.then(im=>{ if(im) disposePhoto(im); }); }
+    // load the rest one at a time, nearest first, so the very next photo is ready soonest
+    for(const e of want) if(!cache.has(e.key)){
+      const entry={};
+      entry.promise=this.pchain=(this.pchain||Promise.resolve()).then(()=>
+        cache.get(e.key)===entry? decodeImage(e).then(async im=>{ im.key=e.key; im.tex=await photoTexture(im.bmp); return im; }) : null
+      ).catch(()=>null);
+      cache.set(e.key,entry);
+    }
   }
   // the timer ran out on the current photo
   advancePhoto(){
@@ -582,7 +624,8 @@ class Slot{
     if(!this.photo) return;
     this.photo=null; this.slidePlaying=false; this.photoTok++;
     if(this.cur){ disposePhoto(this.cur); this.cur=null; }
-    if(this.pre){ disposePhoto(this.pre); this.pre=null; }
+    const cache=this.photoCache(); for(const c of cache.values()) c.promise.then(im=>{ if(im) disposePhoto(im); });
+    cache.clear(); this.pchain=null;
   }
   play(){ if(!this.loaded) return;
     if(this.photo){ this.slidePlaying=true; this.slideNext=performance.now()+photoSecs*1000; this.barDirty=true; this.syncUI(); return; }
@@ -841,8 +884,12 @@ function updateFocus(now){
   }
   // Looking at (or pointing at) a screen's control bar keeps that screen in focus: the bar sits below
   // the picture, outside the angle checked above, and zooming out under your gaze made it hard to use.
-  if(focusOn && gazeHit && gazeHit.kind==='bar' && gazeHit.slot) best=gazeHit.slot;
-  else if(focusOn && focusSlot && now-(focusSlot.lastBarLook||0)<600) best=focusSlot;
+  if(focusOn && !lib.open && gazeHit && gazeHit.kind==='bar' && gazeHit.slot) best=gazeHit.slot;
+  else if(focusOn && !lib.open && focusSlot && now-(focusSlot.lastBarLook||0)<600) best=focusSlot;
+  // While the media browser is open nothing stays zoomed, and focus lets go at once (no dwell), so a
+  // zoomed screen glides back instead of cutting through the browser. Opening FILES from a zoomed
+  // screen's bar used to keep it zoomed, because the bar counted as still in use.
+  if(lib.open){ focusCand=focusSlot=null; }
   if(best!==focusCand){ focusCand=best; focusSince=now; }
   if(now-focusSince>350) focusSlot=focusCand; // a short dwell, so glancing across doesn't pop every screen
   for(const s of visible()){
@@ -1056,7 +1103,10 @@ const getFile=n=>n.file? Promise.resolve(n.file) : n.handle.getFile();
 // (and converting it on the way) blocks the thread that draws every video, which froze them all.
 // 4096 px on the long side is still more than a screen in the headset can show; SBS keeps 2048 per eye.
 const PHOTO_MAX=4096;
+const SKIP_DELAY_MS=1200; // how long "Can't play …, skipping" shows before moving on
+const PHOTO_AHEAD=2; // photos preloaded ahead on each screen (plus the previous one)
 async function decodeImage(e){
+  decodeImage.calls=(decodeImage.calls||0)+1;
   const file=await getFile(e);
   let bmp;
   try{ bmp=await createImageBitmap(file); }catch(err){ throw new Error('this image format can\'t be shown by the browser'); }
@@ -1067,16 +1117,50 @@ async function decodeImage(e){
   }
   return {bmp,w:bmp.width,h:bmp.height};
 }
+// A photo goes to the graphics card a strip at a time, one strip per frame. Handing over a whole
+// 4096-pixel photo (about 38 MB) at once blocks the thread that draws everything, which made the other
+// screens and head tracking hitch for a moment whenever a photo was preloaded. Strips of
+// UPLOAD_ROWS rows (about 2 MB) are small enough not to notice; a photo takes a fraction of a second
+// to arrive, which preloading hides. Resolves with the finished texture.
+const UPLOAD_ROWS=128;
+const uploads=[]; // waiting uploads: {t, strips:[{y,b}], i, resolve}
 function photoTexture(bmp){
-  const t=new THREE.Texture(bmp);
+  const w=bmp.width, h=bmp.height;
+  const t=new THREE.DataTexture(null,w,h,THREE.RGBAFormat); // reserves the space; the pixels come in strips
   // WebGL can't flip an ImageBitmap while uploading it, so flip in the texture coordinates instead
   t.flipY=false; t.repeat.set(1,-1); t.offset.set(0,1);
-  t.minFilter=THREE.LinearMipmapLinearFilter; t.magFilter=THREE.LinearFilter; t.generateMipmaps=true; // mipmaps keep photos from shimmering
+  t.minFilter=THREE.LinearMipmapLinearFilter; t.magFilter=THREE.LinearFilter; // mipmaps keep photos from shimmering
+  t.generateMipmaps=false; // made once all the strips are in (see pumpUploads)
   t.anisotropy=renderer.capabilities.getMaxAnisotropy(); t.needsUpdate=true;
-  renderer.initTexture(t); // upload now, not in the middle of a frame
-  return t;
+  renderer.initTexture(t);
+  // the strips are cut off the main thread
+  const cuts=[]; for(let y=0;y<h;y+=UPLOAD_ROWS){ const sh=Math.min(UPLOAD_ROWS,h-y); cuts.push(createImageBitmap(bmp,0,y,w,sh).then(b=>({y,b}))); }
+  return Promise.all(cuts).then(strips=>new Promise(resolve=>uploads.push({t,strips,i:0,resolve})));
 }
-function disposePhoto(im){ if(im.tex) im.tex.dispose(); im.bmp.close(); }
+// called once per frame from the render loop: sends one strip of the oldest waiting photo
+function pumpUploads(){
+  while(uploads.length){
+    const j=uploads[0], gl=renderer.getContext(), tex=renderer.properties.get(j.t).__webglTexture;
+    if(j.t.dead || !tex){ j.strips.forEach(st=>st.b.close()); uploads.shift(); j.resolve(j.t); continue; } // let go before it finished
+    renderer.state.activeTexture(gl.TEXTURE0); renderer.state.bindTexture(gl.TEXTURE_2D,tex);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);
+    const st=j.strips[j.i++]; gl.texSubImage2D(gl.TEXTURE_2D,0,0,st.y,gl.RGBA,gl.UNSIGNED_BYTE,st.b); st.b.close();
+    if(j.i>=j.strips.length){ gl.generateMipmap(gl.TEXTURE_2D); uploads.shift(); j.resolve(j.t); }
+    return;
+  }
+}
+function disposePhoto(im){ if(im.tex){ im.tex.dead=true; im.tex.dispose(); } im.bmp.close(); }
+// If the graphics context is lost and comes back (a driver reset, a headset reconnect), photo textures
+// filled strip by strip come back empty. Re-send each screen's current photo, and let the preload
+// queue refill itself.
+canvas.addEventListener('webglcontextrestored',()=>{
+  uploads.length=0;
+  for(const s of slots){
+    const cache=s.photoCache(); cache.clear(); s.pchain=null;
+    const im=s.cur; if(!im) continue;
+    photoTexture(im.bmp).then(t=>{ if(s.cur!==im) return; im.tex=t; for(const m of [s.mono,s.left,s.right]){ m.material.map=t; m.material.needsUpdate=true; } s.prefetch(); });
+  }
+});
 // small photo thumbnail, letterboxed rather than cropped so side-by-side 3D photos show both halves
 async function photoThumb(e){
   // decoded straight to thumbnail size off the main thread (height follows the photo's shape)
@@ -1311,6 +1395,13 @@ async function shuffleAll(){
   const msg=(kind!==want? 'No '+KIND_NAME[want]+' in these folders, so shuffling ' : 'Shuffling ')+what+(res.capped? ' (stopped at '+TREE_LIMIT+')' : '');
   setTimeout(()=>s.flashMsg(msg,4000),300);
 }
+// ↻: forget everything read from the folders this session (SHUFFLE ALL scans, LATEST dates,
+// thumbnails) and read the current folder again, so added or removed files and folders show up.
+function refreshLibrary(){
+  if(gathering) return;
+  treeCache.clear(); dates.clear(); clearThumbQ(); thumbs.clear();
+  refreshDir().then(()=>{ lib.note='Refreshed: folders will be read again'; lib.dirty=true; });
+}
 function browserClick(b){
   switch(b.id){
     case 'close': closeBrowser(); break;
@@ -1334,6 +1425,7 @@ function browserClick(b){
     case 'playall': playFromFolder(null,'next'); break;
     case 'shuffleall': playFromFolder(null,'shuffle'); break;
     case 'shuffletree': shuffleAll(); break;
+    case 'refresh': refreshLibrary(); break;
     case 'kind': slots[lib.target].playKind=lib.kind=b.data; break;
   }
   lib.dirty=true;
@@ -1364,8 +1456,9 @@ function openBrowser(i){
   setTarget(t);
   camera.updateMatrixWorld();
   const head=new THREE.Vector3().setFromMatrixPosition(camera.matrixWorld);
-  const dir=new THREE.Vector3(0,0,-1).transformDirection(camera.matrixWorld); dir.y=0;
-  if(dir.lengthSq()<1e-4) dir.set(0,0,-1); dir.normalize();
+  // Always straight ahead, in the middle of the layout (the way Reset View faces), not wherever you
+  // happen to be looking: opened from a screen at the far end of 4 wide it used to land off to the side.
+  const dir=new THREE.Vector3(0,0,-1);
   panel.position.copy(head).addScaledVector(dir,PANEL_DIST); panel.position.y=head.y-0.1;
   panel.lookAt(head.x,panel.position.y,head.z);
   lib.open=true; panel.visible=true; lib.dirty=true;
@@ -1403,16 +1496,18 @@ function drawPanel(){
   const settings=lib.view==='settings';
   c.fillStyle='#e9e8f2'; c.font='700 60px '+DISP; c.textAlign='left'; c.textBaseline='middle'; c.fillText(settings? 'SETTINGS' : 'MEDIA',40,64);
   btn('up','▲  UP',440,24,150,72,{dis:settings || !lib.path.length});
+  btn('refresh','↻',600,24,90,72,{dis:settings,font:'700 40px '+BODY}); // forget what was read, read the folders again
   c.fillStyle='#e9e8f2'; c.font='600 34px '+BODY; c.textAlign='left';
-  c.fillText(settings? 'Settings' : fitLeft(c,['Places',...lib.path.map(n=>n.name)].join('  ›  '),450),620,62);
+  c.fillText(settings? 'Settings' : fitLeft(c,['Places',...lib.path.map(n=>n.name)].join('  ›  '),365),705,62);
   const noFiles=settings || !lib.entries.some(isPlayable);
   // VIDEOS / PHOTOS: what the three play buttons play, chosen per screen (not used for scenes)
   const folders=!settings && lib.src!=='scenes', TB='700 30px '+DISP;
-  btn('kind','VIDEOS',1090,24,118,72,{data:'file',on:lib.kind==='file',dis:!folders,font:TB});
-  btn('kind','PHOTOS',1212,24,118,72,{data:'image',on:lib.kind==='image',dis:!folders,font:TB});
-  btn('playall','▶  PLAY ALL',1340,24,180,72,{dis:noFiles,font:TB});
-  btn('shuffleall','⤮  SHUFFLE',1530,24,180,72,{dis:noFiles,font:TB});
-  btn('shuffletree','⤮  SHUFFLE ALL',1720,24,210,72,{dis:!folders || gathering || (!lib.path.length && !lib.roots.length),font:TB});
+  btn('playall','▶  PLAY ALL',1090,24,180,72,{dis:noFiles,font:TB});
+  btn('shuffleall','⤮  SHUFFLE',1280,24,180,72,{dis:noFiles,font:TB});
+  btn('shuffletree','⤮  SHUFFLE ALL',1470,24,210,72,{dis:!folders || gathering || (!lib.path.length && !lib.roots.length),font:TB});
+  // what PLAY ALL / SHUFFLE / SHUFFLE ALL play from your folders (per screen)
+  btn('kind','VIDEOS',1690,24,118,72,{data:'file',on:lib.kind==='file',dis:!folders,font:TB});
+  btn('kind','PHOTOS',1812,24,118,72,{data:'image',on:lib.kind==='image',dis:!folders,font:TB});
   btn('close','✕',1940,24,84,72);
 
   // sidebar
@@ -1758,6 +1853,7 @@ renderer.setAnimationLoop(()=>{
   const panelHover=[];
   if(swapFrom && (now>swapUntil || !swapFrom.group.visible)) endSwap();
   if(needArrange) arrange();
+  pumpUploads(); // at most one photo strip per frame
   updateGaze();
   updateFocus(now);
   pollPad(now);
@@ -1839,11 +1935,11 @@ document.addEventListener('visibilitychange',()=>{
 // (npm test, see tests/). Normal visits never set this.
 if(new URLSearchParams(location.search).has("test")) window.FourEyes={
   THREE, R, BW, BH, ROW2, CW, CH, TREE_LIMIT, FIT_UP_DEG, KIND_NAME,
-  slots, lib, camera, world, panelCanvas, SETTINGS, treeCache, slotAt,
+  slots, lib, camera, world, panel, panelCanvas, SETTINGS, treeCache, slotAt,
   applyLayout, arrange, fitInView, layoutSpan, topAngle, visible, screenAngle, sizeTo,
   bendScreen, setUV, findBorders, raycastFrom, activate, swapScreens,
   openBrowser, closeBrowser, browserClick, refreshDir, drawPanel, gatherTree, shuffleAll, setSetting, stepPhotoSecs,
-  resetPrefs, PREFS_KEY,
+  resetPrefs, PREFS_KEY, refreshLibrary, renderer, photoTexture, uploads, UPLOAD_ROWS, decodeImage, PHOTO_AHEAD, updateFocus, focus:{ get:()=>focusSlot, set:s=>{ focusSlot=focusCand=s; } },
   layout:()=>layout, eyeY:()=>eyeY, setEye:v=>{ eyeY=v; needArrange=true; }, barButtons:()=>barButtons, photoSecs:()=>photoSecs,
 };
 })();
