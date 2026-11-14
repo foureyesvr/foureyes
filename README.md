@@ -137,8 +137,10 @@ Each screen has a two-row bar underneath it:
 
 - **Picture freezes but sound keeps playing:** Chrome pauses video pictures when it thinks the
   page is hidden. Don't minimize the Chrome window or cover it completely while you're in VR.
-- **Screens too high or low:** Four Eyes measures your eye height a moment after you enter VR
-  and centres the screens on it. Sit or stand the way you'll watch before pressing Enter VR.
+- **Where the screens appear:** a moment after you enter VR, Four Eyes centres the screens on
+  your head, in front of the way you're facing and at your eye height. Sit or stand the way
+  you'll watch and look straight ahead as you press Enter VR. To move them later, recentre your
+  headset (hold the Oculus / system button) and they follow.
 - **"The browser blocked playback":** click once on the page (browsers only allow sound after
   you've interacted with a page), then try again.
 - **File pickers don't open inside the headset.** Add your folders on the PC first; after that,
@@ -184,6 +186,9 @@ purchases.
 `.jps` stereo photos. You can mix flat and 3D screens.
 
 **Does it collect any data?** No. See [Privacy](#privacy).
+
+**Like it?** Four Eyes counts nothing, so a ⭐ star on this repository is the only way to know
+it's being used. Stars also help other people find it.
 
 ## How it's built
 
