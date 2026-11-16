@@ -176,7 +176,7 @@ Privacy is the point, not an afterthought.
 your PC, add your video folders, choose 2, 3 or 4 screens and press **Enter VR**. Each screen
 plays its own video with its own controls and sound.
 
-**Is it free?** Yes. It's free and open source (MIT), with no account, no ads and no in-app
+**Is it free?** Yes. It's free and open source (AGPL-3.0), with no account, no ads and no in-app
 purchases.
 
 **Which headsets work?** Any PC VR headset Chrome or Edge supports through WebXR: Meta Quest 2,
@@ -216,4 +216,12 @@ What they can't cover is the headset itself: how it looks and feels in VR is sti
 
 ## License
 
-[MIT](LICENSE)
+Copyright © 2026 Rodney Moore. Four Eyes is free and open source under the [GNU Affero General Public License v3.0](LICENSE)
+(AGPL-3.0). You can use, change and share it, including running it on a website, as long as
+anyone who uses your version can get its full source code under the same licence.
+
+Versions released before this change were under the MIT License, and stay under it.
+
+**Commercial licensing.** If you want to build Four Eyes into a website or product without the
+AGPL's terms, a commercial licence is available. Contact
+[@rodbuilds on GitHub](https://github.com/rodbuilds).
