@@ -262,6 +262,25 @@ function centreOnHead(){
   if(y>0.6 && y<2.2) eyeY=y;
   needArrange=true;
 }
+// Recentring from the headset (holding the Meta / system button, or Reset View in its menu) moves where
+// the headset thinks you are, and the screens should centre on you again. Browsers don't always report it
+// (Chrome over Quest Link didn't send a 'reset' event), so also watch for the jump it causes: your head
+// can't turn ~35° or move 40 cm between two frames on its own. Called once per frame.
+let lastHead=null;
+function watchRecentre(now,presenting){
+  if(!presenting){ lastHead=null; return false; }
+  camera.updateMatrixWorld();
+  const e=camera.matrixWorld.elements, x=e[12], z=e[14], fx=-e[8], fz=-e[10], flat=Math.hypot(fx,fz);
+  const yaw= flat>0.3? Math.atan2(-fx,-fz) : null; // looking nearly straight up or down: the turn isn't meaningful
+  let jumped=false;
+  if(lastHead){
+    let dy=0; if(yaw!=null && lastHead.yaw!=null){ dy=Math.abs(yaw-lastHead.yaw); if(dy>Math.PI) dy=2*Math.PI-dy; }
+    jumped= dy>0.6 || Math.hypot(x-lastHead.x,z-lastHead.z)>0.4;
+    if(jumped && !measureEyeAt) measureEyeAt=now+300;
+  }
+  lastHead={x,z,yaw};
+  return jumped;
+}
 let autoHide = true;
 const statusEl = document.getElementById('status');
 const setStatus = t => statusEl.textContent = t || '';
@@ -1508,7 +1527,8 @@ function openBrowser(i){
   const head=new THREE.Vector3().setFromMatrixPosition(camera.matrixWorld);
   // Always straight ahead, in the middle of the layout (the way Reset View faces), not wherever you
   // happen to be looking: opened from a screen at the far end of 4 wide it used to land off to the side.
-  const dir=new THREE.Vector3(0,0,-1);
+  // The layout is turned to face you when you enter VR (centreOnHead), so turn with it.
+  const dir=new THREE.Vector3(0,0,-1).applyAxisAngle(new THREE.Vector3(0,1,0),world.rotation.y);
   panel.position.copy(head).addScaledVector(dir,PANEL_DIST); panel.position.y=head.y-0.1;
   panel.lookAt(head.x,panel.position.y,head.z);
   lib.open=true; panel.visible=true; lib.dirty=true;
@@ -1969,6 +1989,7 @@ renderer.setAnimationLoop(()=>{
       else if(now-s.stallSince>3000){ s.stallSince=now; v.currentTime=v.currentTime+0.05; v.play().catch(()=>{}); }
     } else s.stallSince=now;
   }
+  watchRecentre(now,renderer.xr.isPresenting);
   if(measureEyeAt && now>measureEyeAt && renderer.xr.isPresenting){
     measureEyeAt=0; centreOnHead();
   }
@@ -1990,7 +2011,7 @@ if(new URLSearchParams(location.search).has("test")) window.FourEyes={
   applyLayout, arrange, fitInView, layoutSpan, topAngle, visible, screenAngle, sizeTo,
   bendScreen, setUV, findBorders, raycastFrom, activate, swapScreens,
   openBrowser, closeBrowser, browserClick, refreshDir, drawPanel, gatherTree, shuffleAll, setSetting, stepPhotoSecs,
-  resetPrefs, PREFS_KEY, refreshLibrary, centreOnHead, renderer, photoTexture, uploads, UPLOAD_ROWS, decodeImage, PHOTO_AHEAD, updateFocus, focus:{ get:()=>focusSlot, set:s=>{ focusSlot=focusCand=s; } },
+  resetPrefs, PREFS_KEY, refreshLibrary, centreOnHead, watchRecentre, recentreDue:()=>measureEyeAt, renderer, photoTexture, uploads, UPLOAD_ROWS, decodeImage, PHOTO_AHEAD, updateFocus, focus:{ get:()=>focusSlot, set:s=>{ focusSlot=focusCand=s; } },
   layout:()=>layout, eyeY:()=>eyeY, setEye:v=>{ eyeY=v; needArrange=true; }, barButtons:()=>barButtons, photoSecs:()=>photoSecs,
 };
 })();
