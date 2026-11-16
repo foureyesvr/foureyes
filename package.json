@@ -2,7 +2,7 @@
   "name": "four-eyes",
   "private": true,
   "description": "Watch up to four videos or photo slideshows side by side in VR.",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "scripts": {
     "test": "node --test --test-concurrency=1 --test-timeout=120000 \"tests/*.test.mjs\""
   },
